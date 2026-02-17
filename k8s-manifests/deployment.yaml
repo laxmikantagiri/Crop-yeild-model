@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: crop-yield
+  name: crop-yield-deployment
+  labels:
+    app: crop-yield
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crop-yield
+  template:
+    metadata:
+      labels:
+        app: crop-yield
+    spec:
+      containers:
+      - name: crop-yield-container
+        image: ghcr.io/laxmikantagiri/crop-yield:v01
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+

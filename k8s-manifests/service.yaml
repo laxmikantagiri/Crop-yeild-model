@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: crop-yield-service
+  namespace: crop-yield
+spec:
+  type: ClusterIP
+  selector:
+    app: crop-yield
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+
