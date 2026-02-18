@@ -4,8 +4,6 @@ import joblib
 import os
 
 from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
@@ -13,56 +11,52 @@ from sklearn.metrics import mean_squared_error
 # Load data
 df = pd.read_csv("data/crop-yield.csv")
 
-X = df.drop("Crop_Yield_ton_per_hectare", axis=1)
-y = df["Crop_Yield_ton_per_hectare"]
-
-# Columns
+# Convert categorical columns to numeric codes
 categorical_cols = [
-    "Soil_Type", "Region", "Season",
-    "Crop_Type", "Irrigation_Type"
+    "Soil_Type",
+    "Region",
+    "Season",
+    "Crop_Type",
+    "Irrigation_Type"
 ]
 
-numerical_cols = [
-    "N","P","K","Soil_pH","Soil_Moisture",
-    "Organic_Carbon","Temperature","Humidity",
-    "Rainfall","Sunlight_Hours","Wind_Speed",
-    "Altitude","Fertilizer_Used","Pesticide_Used"
-]
+for col in categorical_cols:
+    df[col] = df[col].astype("category").cat.codes
 
-# Preprocessing
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
-        ("num", "passthrough", numerical_cols)
-    ]
-)
+# Separate features and target
+X = df.drop("Crop_Yield_ton_per_hectare", axis=1).values
+y = df["Crop_Yield_ton_per_hectare"].values
 
-# Pipeline
-pipeline = Pipeline([
-    ("preprocess", preprocessor),
-    ("model", RandomForestRegressor(
-        n_estimators=100,
-        max_depth=10,
-        random_state=42
-    ))
-])
+# Print feature order (VERY IMPORTANT for inference)
+feature_columns = list(df.drop("Crop_Yield_ton_per_hectare", axis=1).columns)
+
+print("\nFeature Order (USE THIS ORDER IN CURL REQUEST):")
+for i, col in enumerate(feature_columns):
+    print(i, col)
 
 # Train-test split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
+# Model
+model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=10,
+    random_state=42
+)
+
 # Train
-pipeline.fit(X_train, y_train)
+model.fit(X_train, y_train)
 
 # Evaluate
-preds = pipeline.predict(X_test)
-mse = mean_squared_error(y_test, preds)
-rmse = np.sqrt(mse)
-print(f"RMSE: {rmse:.2f}")
+preds = model.predict(X_test)
+rmse = np.sqrt(mean_squared_error(y_test, preds))
+print(f"\nRMSE: {rmse:.2f}")
 
-# Save pipeline
+# Save model
 os.makedirs("model", exist_ok=True)
-joblib.dump(pipeline, "model/pipeline.pkl")
-print("Model pipeline saved")
+joblib.dump(model, "model/pipeline.pkl")
+
+print("\nModel saved successfully for KServe.")
 
